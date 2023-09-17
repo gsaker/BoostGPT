@@ -1,15 +1,18 @@
-from lib import *
+import lib
+import settings
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import qdarkstyle
 import threading
+#import asyncio
 
+#from EdgeGPT import Chatbot, ConversationStyle
+#bot = Chatbot(cookiePath='./cookies.json')
 
 class ChatBubble(QWidget):
     def __init__(self, message, isSentByMe):
         super().__init__()
-        
         self.message = message
         self.isSentByMe = isSentByMe
         self.initUI()
@@ -50,10 +53,13 @@ class ChatBubble(QWidget):
     def appendMessage(self, message):
         #workaround api oddities where there is no space after punctuation
         self.textEdit.moveCursor(QTextCursor.End)
+        """
         if (message == "," or message == "." or message == "!" or message == "?"):
             self.textEdit.insertPlainText(message+" ")
         else:
-            self.textEdit.insertPlainText(message)
+        """
+        self.textEdit.insertPlainText(message)
+        self.textEdit.sizeChange()
 
 class GrowingTextEdit(QTextEdit):
     def __init__(self, isSentByMe,heightMin,heightMax,*args, **kwargs):
@@ -65,12 +71,14 @@ class GrowingTextEdit(QTextEdit):
         self.heightMax = heightMax
 
     def sizeChange(self):
+        print(self.document().size().height())
         #workaround api oddities where AI generated messages have a larger height than non gpt messages
         if (self.isSentByMe):
             docHeight = self.document().size().height()+10
         else:
             docHeight = self.document().size().height()-2
         if self.heightMin <= docHeight <= self.heightMax:
+            print("A")
             self.setMinimumHeight(int(docHeight)+20)
 class ChatWindow(QWidget):
     messageReceived = pyqtSignal(str)
@@ -84,11 +92,24 @@ class ChatWindow(QWidget):
         self.initUI()
 
     def initUI(self):
+        print(lib.loadPrompts())
         self.setWindowTitle('Chat Window')
         #Set minimum width of window to make sure chat experience is consistent
-        self.setGeometry(100, 100, 770, 1000) 
+        self.setGeometry(100, 100, 770, 700) 
         self.setMinimumWidth(770)
         
+
+
+        self.chatSelectArea = QScrollArea()
+        self.chatSelectArea.setWidgetResizable(True)
+
+        self.chatSelectAreaLayout = QVBoxLayout()
+        self.chatSelectAreaWidget = QWidget()
+        self.chatSelectAreaWidget.setLayout(self.chatSelectAreaLayout)
+        self.chatSelectArea.setWidget(self.chatSelectAreaWidget)
+
+        self.createPromptButtons()
+        self.chatSelectAreaLayout.addStretch()
         self.scrollArea = QScrollArea()
         self.scrollArea.setWidgetResizable(True)
 
@@ -107,40 +128,73 @@ class ChatWindow(QWidget):
         self.messageInput.setMaximumHeight(100)
 
         self.sendButton = QPushButton('Send')
-        self.sendButton.clicked.connect(self.sendMessage)
+        self.sendButton.clicked.connect(lambda _, message=self.messageInput: self.sendMessage(message.toPlainText()))
+
+        self.settingButton = QPushButton('Settings')
+        self.settingButton.clicked.connect(self.openSettingsWindow)
+
+        self.buttonLayout = QHBoxLayout()
+        self.buttonLayout.addWidget(self.sendButton)
+        self.buttonLayout.addWidget(self.settingButton)
 
         self.inputLayout = QVBoxLayout()
         self.inputLayout.addWidget(self.messageInput)
-        self.inputLayout.addWidget(self.sendButton)
+        self.inputLayout.addLayout(self.buttonLayout)
 
-        self.mainLayout = QVBoxLayout()
-        self.mainLayout.addWidget(self.scrollArea)
-        self.mainLayout.addLayout(self.inputLayout)
+        self.leftLayout = QVBoxLayout()
+        self.leftLayout.addWidget(self.scrollArea)
+        self.leftLayout.addLayout(self.inputLayout)
 
+        self.mainLayout = QHBoxLayout()
+        self.mainLayout.addWidget(self.chatSelectArea,1)
+        self.mainLayout.addLayout(self.leftLayout,3)
+        
         self.setLayout(self.mainLayout)
+    def createPromptButtons(self):
+        for prompt in lib.loadPrompts():
+            print("H")
+            button = QPushButton(prompt[0])
+            print(prompt[0])
+            button.clicked.connect(lambda _, message=prompt[1]: self.sendMessage(message))
+            print("B")
+            self.chatSelectAreaLayout.addWidget(button)
+
     def getResponse(self,prompt):
-        for data in chatbot.ask_stream(prompt):
+        #asyncio.run(self.askBing(prompt))
+        
+        print("Getting...")
+        for data in lib.chatbot.ask_stream(prompt):
             #emit signal to GUI thread to update responseBubble
             self.messageReceived.emit(data)
+        
         return
-    def sendMessage(self):
-        message = self.messageInput.toPlainText()
+    """
+    async def askBing(self,promptEntered):
+        response = await bot.ask(prompt=promptEntered, conversation_style=ConversationStyle.creative, wss_link="wss://sydney.bing.com/sydney/ChatHub")
+        self.messageReceived.emit(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
+        await bot.close()
+    """
+    def sendMessage(self,message):
         print(message)
         if message:
             self.chatBubble = ChatBubble("", True)
-            self.scrollAreaLayout.removeItem(self.spacerItem)
-            self.scrollAreaLayout.addWidget(self.chatBubble)
-            self.scrollAreaLayout.addItem(self.spacerItem)
+            self.addWithSpacer(self.chatBubble)
+            
+            print(message)
             self.chatBubble.appendMessage(message)
-            
+            self.chatBubble.appendMessage(' ')
             self.messageInput.setText('') 
-            
             self.responseBubble = ChatBubble("", False)
-            self.scrollAreaLayout.removeItem(self.spacerItem)
-            self.scrollAreaLayout.addWidget(self.responseBubble)
-            self.scrollAreaLayout.addItem(self.spacerItem)
+            self.addWithSpacer(self.responseBubble)
+
             t = threading.Thread(target=self.getResponse, args=(message,))
             t.start()
+    def addWithSpacer(self,item):
+        self.scrollAreaLayout.removeItem(self.spacerItem)
+        self.scrollAreaLayout.addWidget(item)
+        self.scrollAreaLayout.addItem(self.spacerItem)
     def addToResponse(self,data):
         self.responseBubble.appendMessage(data)
-            
+    def openSettingsWindow(self):
+        self.settingsWindow = settings.SettingsWindow()
+        self.settingsWindow.show()
