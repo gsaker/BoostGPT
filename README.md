@@ -1,7 +1,7 @@
 # ChatGPTGUI
 **I'll come up with a better name later**
 
-![[Media/mainwindow.png]]
+![Screenshot](Media/mainwindow.png)
 
 Currently a simple ChatGPT interface, requires an API key but hopefully will not in the future
 
