@@ -1,7 +1,9 @@
 # ChatGPTGUI
 **I'll come up with a better name later**
 
-Currently a simple chatGPT interface, requires an API key but hopefully will not in the future
+![[Media/mainwindow.png]]
+
+Currently a simple ChatGPT interface, requires an API key but hopefully will not in the future
 
 ## Dependencies
 `pip install revchatgpt pyqt5 qdarkstyle`
