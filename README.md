@@ -9,7 +9,11 @@ There might be more but I can't remember
 
 ## Running
 `git clone https://github.com/gsaker/ChatGPTGUI/`
+
 `cd ChatGPTGUI`
+
 `python main.py`
+
 It's that simple
+
 Should be OS agnostic but not tested on anything other than Linux
