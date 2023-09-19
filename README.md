@@ -1,5 +1,5 @@
-# ChatGPTGUI
-**I'll come up with a better name later**
+# BoostGPT
+
 
 ![Screenshot](Media/mainwindow.png)
 
@@ -10,9 +10,9 @@ Currently a simple ChatGPT interface, requires an API key but hopefully will not
 There might be more but I can't remember
 
 ## Running
-`git clone https://github.com/gsaker/ChatGPTGUI/`
+`git clone https://github.com/gsaker/BoostGPT/`
 
-`cd ChatGPTGUI`
+`cd BoostGPT`
 
 `python main.py`
 
